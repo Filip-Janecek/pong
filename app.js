@@ -20,6 +20,7 @@ function main(req, res) {
         hrac.x = 100;
         hrac.y = 100;
         hrac.r = 10;
+        hrac.baba = (hraci.length == 0);
         console.log(q.query);
         hrac.jmeno = q.query.j;
         hrac.barva = "#" + q.query.b;
@@ -41,18 +42,51 @@ const wss = new WebSocket.Server({ server: srv });
 
 wss.on('connection', ws => {
     ws.on('message', message => { //prijem zprav
-        console.log(`Přijatá zpráva: ${message}`);
+        //console.log(`Přijatá zpráva: ${message}`);
+        let posunuti = JSON.parse(message);
+        for (let hrac of hraci) {
+            if (posunuti.uid === hrac.uid) { //vyhleda prislusneho hrace
+                if (posunuti.left) { //zpracování jednotlivého hráče o posunu
+                    hrac.x = hrac.x - 1;
+                }
+                if (posunuti.right) {
+                    hrac.x = hrac.x + 1;
+                }
+                if (posunuti.up) {
+                    hrac.y = hrac.y - 1;
+                }
+                if (posunuti.down) {
+                    hrac.y = hrac.y + 1;
+                }
+                //TODO kontrola předání baby s využitím funkce vzdaelonostBodu()
+                break;
+            }
+        }
     });
+
 });
 
-let counter = 0;
+
 function broadcast() {
-    counter++;
+    let json = JSON.stringify(hraci);
     //odeslani zpravy vsem pripojenym klientum
     wss.clients.forEach(function each(client) {
         if (client.readyState === WebSocket.OPEN) {
-            client.send(counter);
+            client.send(json);
         }
     });
+
 }
-setInterval(broadcast, 1000);
+setInterval(broadcast, 10);
+
+function vzdalenostBodu(bod1, bod2) {
+    let xRozd = Math.abs(bod1.x - bod2.x);
+    let yRozd = Math.abs(bod1.y - bod2.y);
+    let vzdal = Math.sqrt(xRozd*xRozd + yRozd*yRozd);
+   /* if (vzdal<5){
+        console.log("Změna baby!")
+    }*/
+    return vzdal;
+
+}
+

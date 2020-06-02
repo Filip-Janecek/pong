@@ -11,13 +11,21 @@
         let y = 100;
         let prezdivka = "";
         let barvaHrace = "#008000";
-        function vzdalenostBodu(bod1, bod2) {
-            let xRozd = Math.abs(bod1.x - bod2.x);
-            let yRozd = Math.abs(bod1.y - bod2.y);
-            let vzdal = Math.sqrt(xRozd*xRozd + yRozd*yRozd);
-            return vzdal;
+
+        function posliPosunuti() {
+            if(moveUp || moveDown ||moveLeft || moveRight){ //pokud alespoň jeden ze směrů == true (pokud se nic neděje, server zbytečně nezaěžuji odesíláním všech parametrů false
+                let obj = {};
+                obj.uid = uid; //podle uid pozna server, se kterym hracem ma posunout
+                obj.up = moveUp;
+                obj.down = moveDown;
+                obj.left = moveLeft;
+                obj.right = moveRight;
+                connection.send(JSON.stringify(obj));
+            }
+
         }
-        let uid;
+
+        let uid, tmr;
         function nastavHrace() {
             prezdivka = document.getElementById("prezdivka").value;
             barvaHrace = document.getElementById("barva").value;
@@ -26,51 +34,13 @@
                 response.text().then(function(text) {
                     let obj = JSON.parse(text);
                     uid = obj.uid;
+                    if (!tmr){ //zamezení tomu, aby naráz existovalo více časovačů if (tmr) . pokud je časovač prázdná konstanta
+                        tmr = setInterval(posliPosunuti, 10);
+                    }
                 });
             });
         }
-        function kresli() {
-            cnv = document.getElementById("platno");
-            ctx = cnv.getContext("2d");
 
-            ctx.clearRect(0,0,cnv.width,cnv.height);
-
-            if (moveLeft) {
-                x = x - 1;
-            }
-            if (moveRight) {
-                x = x + 1;
-            }
-            if (moveUp) {
-                y = y - 1;
-            }
-            if (moveDown) {
-                y = y + 1;
-            }
-            //kontrola okraju
-            if (x < R) {
-                x = cnv.width - R;
-            }
-            if (x > cnv.width - R) {
-                x = R;
-            }
-            if (y < R) {
-                y = cnv.height - R;
-            }
-            if (y > cnv.height - R) {
-                y = R;
-            }
-            ctx.beginPath();
-            ctx.lineWidth = 1;
-            ctx.fillStyle = barvaHrace;
-            ctx.arc(x,y,R,0,2*3.14);
-            ctx.fill();
-
-            ctx.lineWidth = 1;
-            ctx.fillStyle = "black";
-            ctx.font = "16px Consolas";
-            ctx.fillText(prezdivka, x + R,y + R);
-        }
         let moveUp,moveDown,moveRight,moveLeft;
         function onKeyDown(event) {
             if (event.key === "ArrowUp") {
@@ -113,15 +83,42 @@
                 moveRight = false;
             }
         }
-        function poNacteni() {
-            setInterval(kresli, 10);
-        }
         //websockety...
         const url = 'ws://localhost:8080/';
         const connection = new WebSocket(url);
         connection.onmessage = e => {
             console.log(e.data);
+            cnv = document.getElementById("platno");
+            ctx = cnv.getContext("2d");
+
+            ctx.clearRect(0,0,cnv.width,cnv.height);
+
+            let hraci = JSON.parse(e.data);
+            for (let hrac of hraci) { //hraci - seznam (array), hrac - prvek seznamu
+                ctx.beginPath();
+                ctx.lineWidth = 1;
+                ctx.fillStyle = hrac.barva;
+                ctx.arc(hrac.x,hrac.y,hrac.r,0,2*3.14);
+                ctx.fill();
+
+                if (hrac.baba) {
+                    ctx.beginPath();
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = "black";
+                    ctx.arc(hrac.x,hrac.y,hrac.r,0,2*3.14);
+                    ctx.stroke();
+                }
+
+                ctx.lineWidth = 1;
+                ctx.fillStyle = "black";
+                ctx.font = "16px Consolas";
+                ctx.fillText(hrac.jmeno, hrac.x + hrac.r, hrac.y + hrac.r);
+            }
         };
+
+
+
+
     </script>
 </head>
 <body onkeydown="onKeyDown(event)" onkeyup="onKeyUp(event)">
