@@ -84,8 +84,9 @@
             }
         }
         //websockety...
-        const url = 'ws://localhost:8080/';
-        const connection = new WebSocket(url);
+        const url = HOST.replace("http://","ws://").replace("https://","wss://");
+        const connection = new WebSocket(url);// pro testovací účely na localhostu lze i: const url = 'ws://localhost:8080/';
+
         connection.onmessage = e => {
             console.log(e.data);
             cnv = document.getElementById("platno");
