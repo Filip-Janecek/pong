@@ -4,7 +4,8 @@ const url = require("url");
 const uniqid = require("uniqid");
 
 let hraci = new Array();
-let hracBaba;
+let hracBaba = undefined;
+
 
 function vzdalenostBodu(bod1, bod2) {
     let xRozd = Math.abs(bod1.x - bod2.x);
@@ -38,6 +39,8 @@ function main(req, res) {
         hrac.y = 100;
         hrac.r = 10;
         hrac.baba = (hraci.length === 0);
+        hrac.casBaby = 0;
+        hrac.poslPosun = aktualniCas();
         console.log(q.query);
         hrac.jmeno = q.query.j;
         hrac.barva = "#" + q.query.b;
@@ -67,6 +70,10 @@ wss.on('connection', ws => {
         for (let hrac of hraci) {
             if (posunuti.uid === hrac.uid) { //vyhleda prislusneho hrace
                 let v = 2;
+                if (hrac.baba){
+                    v = 2.5;
+                }
+                hrac.poslPosun = aktualniCas();
                 if (posunuti.left) { //zpracování jednotlivého hráče o posunu
                     hrac.x = hrac.x - v;
                 }
@@ -79,6 +86,22 @@ wss.on('connection', ws => {
                 if (posunuti.down) {
                     hrac.y = hrac.y + v;
                 }
+                let cnv = {};
+                cnv.width = 800;
+                cnv.height = 600;
+                if (hrac.x + hrac.r > cnv.width) {
+                    hrac.x = cnv.width - hrac.r;
+                }
+                if (hrac.x  - hrac.r < 0 ) {
+                    hrac.x = hrac.r;
+                }
+                if (hrac.y  - hrac.r< 0) {
+                    hrac.y = hrac.r;
+                }
+                if (hrac.y + hrac.r > cnv.height) {
+                    hrac.y = cnv.height - hrac.r;
+                }
+
                 if (aktualniCas() < casImunity){
                     break;
                 }
@@ -101,6 +124,7 @@ wss.on('connection', ws => {
                         hracBaba.baba = false;
                         hrac.baba = true;
                         hracBaba = hrac;
+
                         nastavImunitu();
                     }
                 }
@@ -123,6 +147,32 @@ function broadcast() {
 
 }
 setInterval(broadcast, 10);
+
+function prictiCasBaby() {
+    if(hracBaba){
+        hracBaba.casBaby++;
+    }
+}
+setInterval(prictiCasBaby, 1000); //přičítám po sekundě
+
+function kontrolaAktivity() { //vyřadí neaktivní hráče
+    let predejBabu = false;
+    for (let i=hraci.length - 1; i >= 0; i--) {// i ako index - dečítáme 1, protože začínáme na nule
+        let hrac = hraci[i];
+        if (aktualniCas()-hrac.poslPosun> 30000){
+            if (hrac.baba){
+                predejBabu = true;
+            }
+            hraci.splice(i,1);
+        }
+    }
+    if (predejBabu && hraci.length > 0){
+        hraci[0].baba = true;
+        hracBaba = hraci[0];
+    }
+}
+setInterval(kontrolaAktivity, 10000);
+
 /*
 function vzdalenostBodu(bod1, bod2) {
     let xRozd = Math.abs(bod1.x - bod2.x);

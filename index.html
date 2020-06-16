@@ -83,6 +83,8 @@
                 moveRight = false;
             }
         }
+
+
         //websockety...
         const url = HOST.replace("http://","ws://").replace("https://","wss://");
         const connection = new WebSocket(url);// pro testovací účely na localhostu lze i: const url = 'ws://localhost:8080/';
@@ -113,7 +115,20 @@
                 ctx.lineWidth = 1;
                 ctx.fillStyle = "black";
                 ctx.font = "16px Consolas";
-                ctx.fillText(hrac.jmeno, hrac.x + hrac.r, hrac.y + hrac.r);
+                ctx.fillText(hrac.jmeno + "( " + hrac.casBaby + ")", hrac.x + hrac.r, hrac.y + hrac.r);
+
+                if (hrac.x + hrac.r > cnv.width) {
+                    hrac.x = cnv.width - hrac.r;
+                }
+                if (hrac.x  - hrac.r < 0 ) {
+                    hrac.x = hrac.r;
+                }
+                if (hrac.y  - hrac.r< 0) {
+                    hrac.y = hrac.r;
+                }
+                if (hrac.y + hrac.r > cnv.height) {
+                    hrac.y = cnv.height - hrac.r;
+                }
             }
         };
 
